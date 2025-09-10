@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bridge Hotel - Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: #f8fafc;
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+        }
+        
+        .login-left {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #dc2626 0%, #000000 100%);
+        }
+        
+        .login-card {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .logo {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .logo-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #dc2626 0%, #000000 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            color: white;
+            font-size: 2.5rem;
+            border: 3px solid #fff;
+        }
+        
+        .logo-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .logo-text {
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #dc2626 0%, #000000 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .logo-subtitle {
+            color: #6b7280;
+            font-size: 1rem;
+            margin-top: 0.5rem;
+        }
+        
+        .login-form {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #374151;
+            font-weight: 500;
+            font-size: 1rem;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #dc2626 0%, #000000 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .error-message {
+            color: #ef4444;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            text-align: center;
+            display: none;
+            background: #fef2f2;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border-left: 4px solid #ef4444;
+        }
+        
+        .demo-credentials {
+            background: #f9fafb;
+            padding: 1.25rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            margin-top: 1.5rem;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .demo-credentials h4 {
+            margin: 0 0 0.75rem 0;
+            color: #374151;
+            font-size: 1.1rem;
+        }
+        
+        .demo-credentials p {
+            margin: 0.5rem 0;
+            color: #6b7280;
+        }
+        
+        .login-right {
+            flex: 1;
+            background: linear-gradient(135deg, #dc2626 0%, #000000 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .login-right::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" opacity="0.05"><text x="50%" y="50%" font-size="50" text-anchor="middle" dominant-baseline="middle" fill="white">🏨</text></svg>');
+            background-size: 200px;
+            opacity: 0.1;
+        }
+        
+        .hotel-info {
+            max-width: 500px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hotel-info h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        
+        .hotel-info p {
+            font-size: 1.2rem;
+            margin-bottom: 2.5rem;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+        
+        .features {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .feature-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .feature-text {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+        
+        .secure-badge {
+            margin-top: 3rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        /* Dashboard Styles */
+        .dashboard {
+            display: none; /* Initially hidden */
+            min-height: 100vh;
+            background: #f8fafc;
+        }
+        
+        .dashboard-header {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .header-logo-image {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #dc2626 0%, #000000 100%);
+            color: white;
+            font-size: 1.5rem;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-logo-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .header-logo-text {
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #dc2626 0%, #000000 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .logout-btn {
+            padding: 0.5rem 1rem;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+        
+        .logout-btn:hover {
+            background: #dc2626;
+        }
+        
+        .dashboard-nav {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0;
+        }
+        
+        .nav-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+        }
+        
+        .nav-btn {
+            padding: 1rem 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: #6b7280;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .nav-btn:hover {
+            color: #374151;
+            background: #f9fafb;
+        }
+        
+        .nav-btn.active {
+            color: #dc2626;
+            border-bottom-color: #dc2626;
+            background: #fef2f2;
+        }
+        
+        .dashboard-main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .dashboard-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .dashboard-card h3 {
+            margin: 0 0 1rem 0;
+            color: #374151;
+            font-size: 1rem;
+        }
+        
+        .metric {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin: 0;
+        }
+        
+        .metric-label {
+            color: #6b7280;
+            font-size: 0.9rem;
+            margin: 0.5rem 0 0 0;
+        }
+        
+        .page-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-top: 2rem;
+            display: none; /* All pages hidden by default */
+        }
+        
+        #dashboard-content {
+            display: block; /* Only dashboard content shown by default */
+        }
+        
+        .page-content h2 {
+            color: #1f2937;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .employees-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .employee-card {
+            background: #f9fafb;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #dc2626;
+        }
+        
+        .employee-card h4 {
+            margin: 0 0 0.5rem 0;
+            color: #1f2937;
+        }
+        
+        .employee-role {
+            color: #dc2626;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .employee-contact {
+            color: #6b7280;
+            font-size: 0.9rem;
+            margin: 0.25rem 0;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table th {
+            background: #f8fafc;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .data-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .category-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .category-income {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .category-expense {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .inventory-card {
+            background: #f9fafb;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .inventory-card h4 {
+            margin: 0 0 0.5rem 0;
+            color: #1f2937;
+        }
+        
+        .inventory-quantity {
+            color: #3b82f6;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .reports-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .report-card {
+            background: #f9fafb;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .report-card h4 {
+            margin: 0 0 1rem 0;
+            color: #1f2937;
+        }
+        
+        .report-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #dc2626;
+        }
+        
+        .recent-activity {
+            margin-top: 2rem;
+        }
+        
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .activity-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        
+        .activity-desc {
+            font-weight: 500;
+        }
+        
+        .activity-time {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 1024px) {
+            .login-container {
+                flex-direction: column;
+            }
+            
+            .login-left {
+                order: 2;
+            }
+            
+            .login-right {
+                order: 1;
+                padding: 2rem;
+            }
+            
+            .hotel-info {
+                text-align: center;
+            }
+            
+            .hotel-info h2 {
+                font-size: 2rem;
+            }
+            
+            .hotel-info p {
+                font-size: 1.1rem;
+            }
+            
+            .features {
+                align-items: center;
+            }
+            
+            .feature {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .login-left {
+                padding: 1.5rem;
+            }
+            
+            .login-card {
+                padding: 2rem;
+            }
+            
+            .logo-image {
+                width: 80px;
+                height: 80px;
+                font-size: 2rem;
+            }
+            
+            .logo-text {
+                font-size: 1.8rem;
+            }
+            
+            .hotel-info h2 {
+                font-size: 1.8rem;
+            }
+            
+            .hotel-info p {
+                font-size: 1rem;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+            
+            .nav-content {
+                flex-direction: column;
+                padding-bottom: 0.5rem;
+            }
+            
+            .employees-grid,
+            .inventory-grid,
+            .reports-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Page (initially visible) -->
+    <div class="login-container" id="loginPage">
+        <div class="login-left">
+            <div class="login-card">
+                <div class="logo">
+                    <div class="logo-image">
+                        <img src="/assets/images/bridge.jpg" alt="Bridge Hotel Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; font-size:2.5rem;">🏨</div>
+                    </div>
+                    <div class="logo-text">Bridge Hotel</div>
+                    <div class="logo-subtitle">Management System</div>
+                </div>
+                
+                <form class="login-form">
+                    <div class="form-group">
+                        <label for="username"><i class="fas fa-user"></i> Username</label>
+                        <input type="text" id="username" placeholder="Enter your username">
+                    </div>
+                    <div class="form-group">
+                        <label for="password"><i class="fas fa-lock"></i> Password</label>
+                        <input type="password" id="password" placeholder="Enter your password">
+                    </div>
+                    <button type="button" id="loginBtn" class="login-btn">Sign In</button>
+                </form>
+                
+                <div class="error-message" id="errorMessage">
+                    <i class="fas fa-exclamation-circle"></i> Invalid username or password. Please try again.
+                </div>
+                
+                <div class="demo-credentials">
+                    <h4><i class="fas fa-info-circle"></i> Demo Credentials:</h4>
+                    <p><i class="fas fa-user"></i> Username: <strong>admin</strong></p>
+                    <p><i class="fas fa-key"></i> Password: <strong>password123</strong></p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="login-right">
+            <div class="hotel-info">
+                <h2>Welcome to Bridge Hotel</h2>
+                <p>Ethiopia's trusted hotel management system. Handle reservations, employees, inventory, and finances seamlessly.</p>
+                
+                <div class="features">
+                    <div class="feature">
+                        <div class="feature-icon">👥</div>
+                        <div class="feature-text">Employee Management</div>
+                    </div>
+                    
+                    <div class="feature">
+                        <div class="feature-icon">🍽️</div>
+                        <div class="feature-text">Sales & Daily Income</div>
+                    </div>
+                    
+                    <div class="feature">
+                        <div class="feature-icon">📦</div>
+                        <div class="feature-text">Inventory Tracking</div>
+                    </div>
+                    
+                    <div class="feature">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-text">Financial Reports</div>
+                    </div>
+                    
+                    <div class="feature">
+                        <div class="feature-icon">🔐</div>
+                        <div class="feature-text">Secure Access Control</div>
+                    </div>
+                </div>
+                
+                <div class="secure-badge">
+                    <i class="fas fa-shield-alt"></i> Secure & Encrypted Management System
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Dashboard (initially hidden) -->
+    <div class="dashboard" id="dashboard">
+        <header class="dashboard-header">
+            <div class="header-content">
+                <div class="header-logo">
+                    <div class="header-logo-image">
+                        <img src="/assets/images/bridge.jpg" alt="Bridge Hotel Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; font-size:1.5rem;">🏨</div>
+                    </div>
+                    <div class="header-logo-text">Bridge Hotel</div>
+                </div>
+                
+                <div class="user-info">
+                    <span>Welcome, Admin User</span>
+                    <button class="logout-btn" id="logoutBtn">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+        
+        <nav class="dashboard-nav">
+            <div class="nav-content">
+                <button class="nav-btn active" data-page="dashboard">
+                    <i class="fas fa-home"></i> Dashboard
+                </button>
+                <button class="nav-btn" data-page="employees">
+                    <i class="fas fa-users"></i> Employees
+                </button>
+                <button class="nav-btn" data-page="income">
+                    <i class="fas fa-money-bill-wave"></i> Income
+                </button>
+                <button class="nav-btn" data-page="expenses">
+                    <i class="fas fa-receipt"></i> Expenses
+                </button>
+                <button class="nav-btn" data-page="inventory">
+                    <i class="fas fa-boxes"></i> Inventory
+                </button>
+                <button class="nav-btn" data-page="reports">
+                    <i class="fas fa-chart-bar"></i> Reports
+                </button>
+            </div>
+        </nav>
+        
+        <main class="dashboard-main">
+            <!-- Dashboard Content -->
+            <div id="dashboard-content" class="page-content">
+                <h2><i class="fas fa-tachometer-alt"></i> Dashboard Overview</h2>
+                
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <h3>Total Rooms</h3>
+                        <div class="metric">42</div>
+                        <div class="metric-label">All available rooms</div>
+                    </div>
+                    
+                    <div class="dashboard-card">
+                        <h3>Occupied Rooms</h3>
+                        <div class="metric">28</div>
+                        <div class="metric-label">66.7% occupancy rate</div>
+                    </div>
+                    
+                    <div class="dashboard-card">
+                        <h3>Check-ins Today</h3>
+                        <div class="metric">12</div>
+                        <div class="metric-label">Scheduled for today</div>
+                    </div>
+                    
+                    <div class="dashboard-card">
+                        <h3>Check-outs Today</h3>
+                        <div class="metric">8</div>
+                        <div class="metric-label">Departing today</div>
+                    </div>
+                </div>
+                
+                <div class="recent-activity">
+                    <h3>Recent Activity</h3>
+                    <div class="activity-list">
+                        <div class="activity-item">
+                            <div class="activity-desc">New booking for Room 203</div>
+                            <div class="activity-time">10 minutes ago</div>
+                        </div>
+                        
+                        <div class="activity-item">
+                            <div class="activity-desc">Check-in for Room 105</div>
+                            <div class="activity-time">30 minutes ago</div>
+                        </div>
+                        
+                        <div class="activity-item">
+                            <div class="activity-desc">Maintenance request for Room 209</div>
+                            <div class="activity-time">1 hour ago</div>
+                        </div>
+                        
+                        <div class="activity-item">
+                            <div class="activity-desc">Payment received for Booking #1245</div>
+                            <div class="activity-time">2 hours ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Employees Content -->
+            <div id="employees-content" class="page-content">
+                <h2><i class="fas fa-users"></i> Employee Management</h2>
+                
+                <div class="employees-grid">
+                    <div class="employee-card">
+                        <h4>Ahmed Mohammed</h4>
+                        <p class="employee-role">Head Chef</p>
+                        <p class="employee-contact">📞 +251 91 234 5678</p>
+                        <p class="employee-contact">📧 ahmed@bridgehotel.com</p>
+                    </div>
+                    
+                    <div class="employee-card">
+                        <h4>Selamawit Bekele</h4>
+                        <p class="employee-role">Front Desk Manager</p>
+                        <p class="employee-contact">📞 +251 92 345 6789</p>
+                        <p class="employee-contact">📧 selam@bridgehotel.com</p>
+                    </div>
+                    
+                    <div class="employee-card">
+                        <h4>Tewodros Alemayehu</h4>
+                        <p class="employee-role">General Manager</p>
+                        <p class="employee-contact">📞 +251 93 456 7890</p>
+                        <p class="employee-contact">📧 tewodros@bridgehotel.com</p>
+                    </div>
+                    
+                    <div class="employee-card">
+                        <h4>Meron Abebe</h4>
+                        <p class="employee-role">Housekeeping Supervisor</p>
+                        <p class="employee-contact">📞 +251 94 567 8901</p>
+                        <p class="employee-contact">📧 meron@bridgehotel.com</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Income Content -->
+            <div id="income-content" class="page-content">
+                <h2><i class="fas fa-money-bill-wave"></i> Income Tracking</h2>
+                
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th>Amount (ETB)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Oct 15, 2023</td>
+                                <td><span class="category-badge category-income">Room Booking</span></td>
+                                <td>Deluxe Suite #203</td>
+                                <td>5,400</td>
+                            </tr>
+                            <tr>
+                                <td>Oct 15, 2023</td>
+                                <td><span class="category-badge category-income">Restaurant</span></td>
+                                <td>Dinner service</td>
+                                <td>12,850</td>
+                            </tr>
+                            <tr>
+                                <td>Oct 14, 2023</td>
+                                <td><span class="category-badge category-income">Room Booking</span></td>
+                                <td>Standard Room #105</td>
+                                <td>3,200</td>
+                            </tr>
+                            <tr>
+                                <td>Oct 14, 2023</td>
+                                <td><span class="category-badge category-income">Conference</span></td>
+                                <td>Business meeting room</td>
+                                <td>8,000</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Expenses Content -->
+            <div id="expenses-content" class="page-content">
+                <h2><i class="fas fa-receipt"></i> Expense Tracking</h2>
+                
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th>Amount (ETB)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Oct 15, 2023</td>
+                                <td><span class="category-badge category-expense">Supplies</span></td>
+                                <td>Kitchen supplies</td>
+                                <td>2,500</td>
+                            </tr>
+                            <tr>
+                                <td>Oct 14, 2023</td>
+                                <td><span class="category-badge category-expense">Utilities</span></td>
+                                <td>Electricity bill</td>
+                                <td>1,800</td>
+                            </tr>
+                            <tr>
+                                <td>Oct 13, 2023</td>
+                                <td><span class="category-badge category-expense">Maintenance</span></td>
+                                <td>AC repair</td>
+                                <td>3,200</td>
+                            </tr>
+                            <tr>
+                                <td>Oct 10, 2023</td>
+                                <td><span class="category-badge category-expense">Salaries</span></td>
+                                <td>Staff payroll</td>
+                                <td>85,000</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Inventory Content -->
+            <div id="inventory-content" class="page-content">
+                <h2><i class="fas fa-boxes"></i> Inventory Management</h2>
+                
+                <div class="inventory-grid">
+                    <div class="inventory-card">
+                        <h4>Bed Linens</h4>
+                        <p class="inventory-quantity">Quantity: 120 sets</p>
+                        <p>Last ordered: Oct 5, 2023</p>
+                    </div>
+                    
+                    <div class="inventory-card">
+                        <h4>Cleaning Supplies</h4>
+                        <p class="inventory-quantity">Quantity: 45 units</p>
+                        <p>Last ordered: Oct 10, 2023</p>
+                    </div>
+                    
+                    <div class="inventory-card">
+                        <h4>Food Supplies</h4>
+                        <p class="inventory-quantity">Quantity: 85% stocked</p>
+                        <p>Last ordered: Oct 12, 2023</p>
+                    </div>
+                    
+                    <div class="inventory-card">
+                        <h4>Beverages</h4>
+                        <p class="inventory-quantity">Quantity: 92% stocked</p>
+                        <p>Last ordered: Oct 14, 2023</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Reports Content -->
+            <div id="reports-content" class="page-content">
+                <h2><i class="fas fa-chart-bar"></i> Financial Reports</h2>
+                
+                <div class="reports-container">
+                    <div class="report-card">
+                        <h4>Monthly Revenue</h4>
+                        <div class="report-value">ETB 285,400</div>
+                        <p>October 2023</p>
+                    </div>
+                    
+                    <div class="report-card">
+                        <h4>Monthly Expenses</h4>
+                        <div class="report-value">ETB 127,800</div>
+                        <p>October 2023</p>
+                    </div>
+                    
+                    <div class="report-card">
+                        <h4>Net Profit</h4>
+                        <div class="report-value">ETB 157,600</div>
+                        <p>October 2023</p>
+                    </div>
+                    
+                    <div class="report-card">
+                        <h4>Occupancy Rate</h4>
+                        <div class="report-value">78.5%</div>
+                        <p>October 2023</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginBtn = document.getElementById('loginBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const errorMessage = document.getElementById('errorMessage');
+            const loginPage = document.getElementById('loginPage');
+            const dashboard = document.getElementById('dashboard');
+            const navButtons = document.querySelectorAll('.nav-btn');
+            const pageContents = document.querySelectorAll('.page-content');
+            
+            // Login functionality
+            loginBtn.addEventListener('click', function() {
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                // Simple validation
+                if (username === 'admin' && password === 'password123') {
+                    // Success
+                    errorMessage.style.display = 'none';
+                    loginBtn.innerHTML = '<i class="fas fa-check-circle"></i> Login Successful!';
+                    loginBtn.style.background = 'linear-gradient(135deg, #059669 0%, #065f46 100%)';
+                    
+                    // Redirect to dashboard after a brief delay
+                    setTimeout(() => {
+                        loginPage.style.display = 'none';
+                        dashboard.style.display = 'block';
+                    }, 1000);
+                } else {
+                    // Show error
+                    errorMessage.style.display = 'block';
+                    loginBtn.innerHTML = 'Sign In Failed!';
+                    loginBtn.style.background = 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)';
+                    
+                    // Reset after 2 seconds
+                    setTimeout(() => {
+                        loginBtn.innerHTML = 'Sign In';
+                        loginBtn.style.background = 'linear-gradient(135deg, #dc2626 0%, #000000 100%)';
+                    }, 2000);
+                }
+            });
+            
+            // Logout functionality
+            logoutBtn.addEventListener('click', function() {
+                dashboard.style.display = 'none';
+                loginPage.style.display = 'flex';
+                
+                // Reset login form
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+                loginBtn.innerHTML = 'Sign In';
+                loginBtn.style.background = 'linear-gradient(135deg, #dc2626 0%, #000000 100%)';
+                errorMessage.style.display = 'none';
+            });
+            
+            // Navigation functionality
+            navButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    navButtons.forEach(btn => btn.classList.remove('active'));
+                    
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    
+                    // Hide all page contents
+                    pageContents.forEach(content => content.style.display = 'none');
+                    
+                    // Show the selected page content
+                    const pageId = this.getAttribute('data-page');
+                    document.getElementById(`${pageId}-content`).style.display = 'block';
+                });
+            });
+        });
+    </script>
+</body>
+</html>
