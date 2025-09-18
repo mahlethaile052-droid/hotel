@@ -1,12 +1,11 @@
-class IncomeManager {
+class InventoryManager {
     constructor(dataManager) {
         this.dataManager = dataManager;
     }
 
     render() {
-        const income = this.dataManager.getIncome();
-        const todayTotal = this.getTodayTotal();
-        const weekTotal = this.getWeekTotal();
+        const items = this.dataManager.getInventory();
+        const lowStock = this.dataManager.getLowStockItems();
         
         document.querySelector('#app').innerHTML = `
             <div class="dashboard">
@@ -14,9 +13,10 @@ class IncomeManager {
                     <div class="header-content">
                         <div class="header-logo">
                             <div class="header-logo-image">
-                                <img src="assets/bridge.jpg" alt="Harar Bridge Hotel Logo">
+                                <img src="/assets/images/bridge.jpg" alt="Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; font-size:1.2rem;">🏨</div>
                             </div>
-                            <div class="header-logo-text">Harar Bridge Hotel</div>
+                            <div class="header-logo-text">Bridge</div>
                         </div>
                         <div class="user-info">
                             <span>Welcome, ${window.authManager.currentUser.name}</span>
@@ -29,82 +29,34 @@ class IncomeManager {
                     <div class="nav-content">
                         <button class="nav-btn" onclick="router.navigate('/dashboard')">Dashboard</button>
                         <button class="nav-btn" onclick="router.navigate('/employees')">Employees</button>
-                        <button class="nav-btn active">Income</button>
+                        <button class="nav-btn" onclick="router.navigate('/income')">Income</button>
                         <button class="nav-btn" onclick="router.navigate('/expenses')">Expenses</button>
-                        <button class="nav-btn" onclick="router.navigate('/inventory')">Inventory</button>
+                        <button class="nav-btn active">Inventory</button>
                         <button class="nav-btn" onclick="router.navigate('/reports')">Reports</button>
                     </div>
                 </nav>
                 
                 <main class="dashboard-main">
                     <div class="page-header">
-                        <h2>Income Tracking</h2>
-                        <button id="addIncomeBtn" class="btn btn-primary">Add Income</button>
-                    </div>
-                    
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <h3>Today's Income</h3>
-                            <p class="stat-value">${todayTotal.toLocaleString()} ETB</p>
-                        </div>
-                        <div class="stat-card">
-                            <h3>This Week</h3>
-                            <p class="stat-value">${weekTotal.toLocaleString()} ETB</p>
+                        <h2>Inventory Management</h2>
+                        <div>
+                            <button id="addItemBtn" class="btn btn-primary">Add Item</button>
                         </div>
                     </div>
                     
-                    <div class="table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Category</th>
-                                    <th>Description</th>
-                                    <th>Amount</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${income.map(item => this.renderIncomeRow(item)).join('')}
-                            </tbody>
-                        </table>
+                    ${lowStock.length ? `
+                        <div class="alert alert-warning">
+                            <h4>Low Stock Alerts</h4>
+                            ${lowStock.map(i => `<p>${i.name}: ${i.quantity}/${i.minStock} ${i.unit}</p>`).join('')}
+                        </div>
+                    ` : ''}
+
+                    <div class="inventory-grid">
+                        ${items.map(item => this.renderInventoryCard(item)).join('')}
                     </div>
                     
-                    <div id="incomeModal" class="modal" style="display: none;">
-                        <div class="modal-content">
-                            <span class="close">&times;</span>
-                            <h3>Add Income</h3>
-                            <form id="incomeForm">
-                                <div class="form-group">
-                                    <label for="incomeCategory">Category</label>
-                                    <select id="incomeCategory" required>
-                                        <option value="">Select Category</option>
-                                        <option value="drinks">Drinks</option>
-                                        <option value="meals">Meals</option>
-                                        <option value="meat">Meat</option>
-                                        <option value="draft">Draft</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="incomeDescription">Description</label>
-                                    <input type="text" id="incomeDescription" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="incomeAmount">Amount (ETB)</label>
-                                    <input type="number" id="incomeAmount" step="0.01" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="incomeDate">Date</label>
-                                    <input type="date" id="incomeDate" required>
-                                </div>
-                                <div class="form-actions">
-                                    <button type="submit" class="btn btn-primary">Save</button>
-                                    <button type="button" id="cancelIncomeBtn" class="btn btn-secondary">Cancel</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+                    ${this.renderItemModal()}
+                    ${this.renderStockModal()}
                 </main>
             </div>
         `;
@@ -112,40 +64,109 @@ class IncomeManager {
         this.attachEventListeners();
     }
 
-    renderIncomeRow(item) {
+    renderInventoryCard(item) {
+        const isLow = item.quantity <= item.minStock;
         return `
-            <tr>
-                <td>${new Date(item.date).toLocaleDateString()}</td>
-                <td><span class="category-badge category-${item.category}">${item.category}</span></td>
-                <td>${item.description}</td>
-                <td>${item.amount.toLocaleString()} ETB</td>
-                <td>
-                    <button onclick="incomeManager.deleteIncome(${item.id})" class="btn btn-small btn-danger">Delete</button>
-                </td>
-            </tr>
+            <div class="inventory-card ${isLow ? 'low-stock' : ''}">
+                ${isLow ? '<div class="low-stock-indicator">Low</div>' : ''}
+                <div class="item-header">
+                    <h4>${item.name}</h4>
+                    <div>
+                        <button class="btn btn-small" onclick="inventoryManager.openStockModal(${item.id}, 'in')">Stock In</button>
+                        <button class="btn btn-small" onclick="inventoryManager.openStockModal(${item.id}, 'out')">Stock Out</button>
+                    </div>
+                </div>
+                <div class="item-details">
+                    <p class="quantity">Quantity: ${item.quantity} ${item.unit}</p>
+                    <p>Category: ${item.category}</p>
+                    <p>Min stock: ${item.minStock}</p>
+                    <p>Last Updated: ${item.lastUpdated}</p>
+                </div>
+                <div class="item-actions">
+                    <button class="btn btn-small" onclick="inventoryManager.editItem(${item.id})">Edit</button>
+                    <button class="btn btn-small btn-danger" onclick="inventoryManager.deleteItem(${item.id})">Delete</button>
+                </div>
+            </div>
+        `;
+    }
+
+    renderItemModal() {
+        return `
+            <div id="itemModal" class="modal" style="display:none;">
+                        <div class="modal-content">
+                    <span class="close" id="closeItemModal">&times;</span>
+                    <h3 id="itemModalTitle">Add Item</h3>
+                    <form id="itemForm">
+                        <input type="hidden" id="itemId">
+                        <div class="form-group">
+                            <label for="itemName">Name</label>
+                            <input type="text" id="itemName" required>
+                        </div>
+                                <div class="form-group">
+                            <label for="itemCategory">Category</label>
+                            <select id="itemCategory" required>
+                                <option value="supplies">Supplies</option>
+                                        <option value="drinks">Drinks</option>
+                                <option value="meat">Meat</option>
+                                        <option value="meals">Meals</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                            <label for="itemQuantity">Quantity</label>
+                            <input type="number" id="itemQuantity" step="0.01" required>
+                                </div>
+                                <div class="form-group">
+                            <label for="itemUnit">Unit</label>
+                            <input type="text" id="itemUnit" placeholder="kg, cases, pcs" required>
+                                </div>
+                                <div class="form-group">
+                            <label for="itemMinStock">Minimum Stock</label>
+                            <input type="number" id="itemMinStock" step="0.01" required>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">Save</button>
+                            <button type="button" id="cancelItemBtn" class="btn btn-secondary">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+            </div>
+        `;
+    }
+
+    renderStockModal() {
+        return `
+            <div id="stockModal" class="modal" style="display:none;">
+                <div class="modal-content">
+                    <span class="close" id="closeStockModal">&times;</span>
+                    <h3 id="stockModalTitle">Stock In</h3>
+                    <form id="stockForm">
+                        <input type="hidden" id="stockItemId">
+                        <div class="form-group">
+                            <label for="stockQuantity">Quantity</label>
+                            <input type="number" id="stockQuantity" step="0.01" required>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Apply</button>
+                            <button type="button" id="cancelStockBtn" class="btn btn-secondary">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         `;
     }
 
     attachEventListeners() {
-        const modal = document.getElementById('incomeModal');
-        const addBtn = document.getElementById('addIncomeBtn');
-        const closeBtn = document.querySelector('.close');
-        const cancelBtn = document.getElementById('cancelIncomeBtn');
-        const form = document.getElementById('incomeForm');
+        // Add/Edit item
+        document.getElementById('addItemBtn').addEventListener('click', () => this.openItemModal());
+        document.getElementById('closeItemModal').addEventListener('click', () => this.closeItemModal());
+        document.getElementById('cancelItemBtn').addEventListener('click', () => this.closeItemModal());
+        document.getElementById('itemForm').addEventListener('submit', (e) => this.handleItemSubmit(e));
 
-        // Set today's date as default
-        document.getElementById('incomeDate').value = new Date().toISOString().split('T')[0];
-
-        addBtn.addEventListener('click', () => this.showModal());
-        closeBtn.addEventListener('click', () => this.hideModal());
-        cancelBtn.addEventListener('click', () => this.hideModal());
-        form.addEventListener('submit', (e) => this.handleSubmit(e));
-
-        window.onclick = (event) => {
-            if (event.target === modal) {
-                this.hideModal();
-            }
-        };
+        // Stock modal
+        document.getElementById('closeStockModal').addEventListener('click', () => this.closeStockModal());
+        document.getElementById('cancelStockBtn').addEventListener('click', () => this.closeStockModal());
+        document.getElementById('stockForm').addEventListener('submit', (e) => this.handleStockSubmit(e));
 
         // Logout handler
         document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -153,58 +174,102 @@ class IncomeManager {
             window.router.navigate('/login');
         });
 
-        window.incomeManager = this;
+        window.inventoryManager = this;
     }
 
-    showModal() {
-        document.getElementById('incomeModal').style.display = 'block';
+    // Item CRUD
+    openItemModal(item = null) {
+        const title = document.getElementById('itemModalTitle');
+        const idInput = document.getElementById('itemId');
+        const nameInput = document.getElementById('itemName');
+        const categorySelect = document.getElementById('itemCategory');
+        const qtyInput = document.getElementById('itemQuantity');
+        const unitInput = document.getElementById('itemUnit');
+        const minStockInput = document.getElementById('itemMinStock');
+
+        if (item) {
+            title.textContent = 'Edit Item';
+            idInput.value = item.id;
+            nameInput.value = item.name;
+            categorySelect.value = item.category;
+            qtyInput.value = item.quantity;
+            unitInput.value = item.unit;
+            minStockInput.value = item.minStock;
+        } else {
+            title.textContent = 'Add Item';
+            idInput.value = '';
+            nameInput.value = '';
+            categorySelect.value = 'supplies';
+            qtyInput.value = '';
+            unitInput.value = '';
+            minStockInput.value = '';
+        }
+
+        document.getElementById('itemModal').style.display = 'block';
     }
 
-    hideModal() {
-        document.getElementById('incomeModal').style.display = 'none';
+    closeItemModal() {
+        document.getElementById('itemModal').style.display = 'none';
     }
 
-    handleSubmit(e) {
+    handleItemSubmit(e) {
         e.preventDefault();
-        
-        const incomeData = {
-            category: document.getElementById('incomeCategory').value,
-            description: document.getElementById('incomeDescription').value,
-            amount: parseFloat(document.getElementById('incomeAmount').value),
-            date: document.getElementById('incomeDate').value
+        const idVal = document.getElementById('itemId').value;
+        const data = {
+            name: document.getElementById('itemName').value,
+            category: document.getElementById('itemCategory').value,
+            quantity: parseFloat(document.getElementById('itemQuantity').value),
+            unit: document.getElementById('itemUnit').value,
+            minStock: parseFloat(document.getElementById('itemMinStock').value)
         };
 
-        this.dataManager.addIncome(incomeData);
-        this.hideModal();
+        if (idVal) {
+            this.dataManager.updateInventoryItem(parseInt(idVal, 10), data);
+        } else {
+            this.dataManager.addInventoryItem(data);
+        }
+
+        this.closeItemModal();
         this.render();
     }
 
-    deleteIncome(id) {
-        if (confirm('Are you sure you want to delete this income record?')) {
-            const income = this.dataManager.getIncome();
-            const filtered = income.filter(item => item.id !== id);
-            localStorage.setItem('income', JSON.stringify(filtered));
+    editItem(id) {
+        const item = this.dataManager.getInventory().find(i => i.id === id);
+        if (item) this.openItemModal(item);
+    }
+
+    deleteItem(id) {
+        if (confirm('Delete this item?')) {
+            this.dataManager.deleteInventoryItem(id);
             this.render();
         }
     }
 
-    getTodayTotal() {
-        const today = new Date().toISOString().split('T')[0];
-        return this.dataManager.getIncome()
-            .filter(item => item.date === today)
-            .reduce((total, item) => total + item.amount, 0);
+    // Stock in/out
+    openStockModal(id, direction) {
+        this.stockDirection = direction; // 'in' | 'out'
+        document.getElementById('stockItemId').value = id;
+        document.getElementById('stockModalTitle').textContent = direction === 'in' ? 'Stock In' : 'Stock Out';
+        document.getElementById('stockQuantity').value = '';
+        document.getElementById('stockModal').style.display = 'block';
     }
 
-    getWeekTotal() {
-        const today = new Date();
-        const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-        return this.dataManager.getIncome()
-            .filter(item => {
-                const itemDate = new Date(item.date);
-                return itemDate >= weekAgo && itemDate <= today;
-            })
-            .reduce((total, item) => total + item.amount, 0);
+    closeStockModal() {
+        document.getElementById('stockModal').style.display = 'none';
+    }
+
+    handleStockSubmit(e) {
+        e.preventDefault();
+        const id = parseInt(document.getElementById('stockItemId').value, 10);
+        const qty = parseFloat(document.getElementById('stockQuantity').value);
+        const item = this.dataManager.getInventory().find(i => i.id === id);
+        if (!item) return;
+
+        const newQty = this.stockDirection === 'in' ? (item.quantity + qty) : (item.quantity - qty);
+        this.dataManager.updateInventoryItem(id, { quantity: Math.max(0, newQty) });
+        this.closeStockModal();
+        this.render();
     }
 }
 
-export default IncomeManager;
+export default InventoryManager;

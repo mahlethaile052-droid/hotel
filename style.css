@@ -14,20 +14,21 @@
   box-sizing: border-box;
 }
 
+html, body, #app {
+  height: 100%;
+}
+
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
+  display: block;
   min-width: 320px;
   min-height: 100vh;
+  width: 100%;
 }
 
 #app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
   width: 100%;
+  min-height: 100vh;
 }
 
 .container {
@@ -434,30 +435,43 @@ p {
 
 .quick-add-btn {
   padding: 1.5rem;
-  background: white;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
+  background: linear-gradient(135deg, #111111 0%, #1a1a1a 50%, #000000 100%);
+  border: 1.5px solid #dc2626;
+  border-radius: 14px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 500;
-  color: #374151;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  font-weight: 600;
+  color: #ffffff;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  gap: 0.6rem;
+  box-shadow: 0 8px 18px rgba(220, 38, 38, 0.2), inset 0 0 0 rgba(255,255,255,0);
 }
 
 .quick-add-btn:hover {
-  border-color: #dc2626;
-  color: #dc2626;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+  border-color: #f87171;
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 14px 28px rgba(220, 38, 38, 0.28);
 }
 
 .quick-add-btn i {
   font-size: 1.5rem;
+}
+
+/* Cute icon badge inside quick-add card */
+.quick-add-btn span:first-child {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  box-shadow: 0 6px 14px rgba(220, 38, 38, 0.35);
 }
 
 /* Responsive Design */
@@ -830,16 +844,21 @@ p {
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-content {
   background-color: white;
-  margin: 5% auto;
+  margin: 2% auto;
   padding: 2rem;
   border-radius: 12px;
   width: 90%;
   max-width: 500px;
   position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .close, .close-stock {

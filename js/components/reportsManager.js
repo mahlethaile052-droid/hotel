@@ -10,10 +10,10 @@ class ReportsManager {
                     <div class="header-content">
                         <div class="header-logo">
                             <div class="header-logo-image">
-                                <img src="/assets/images/bridge.jpg" alt="Bridge Hotel Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <img src="/assets/images/bridge.jpg" alt="Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                                 <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; font-size:1.2rem;">🏨</div>
                             </div>
-                            <div class="header-logo-text">Bridge Hotel</div>
+                            <div class="header-logo-text">Bridge</div>
                         </div>
                         <div class="user-info">
                             <span>Welcome, ${window.authManager.currentUser.name}</span>

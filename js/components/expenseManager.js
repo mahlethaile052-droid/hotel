@@ -4,9 +4,8 @@ class ExpenseManager {
   }
 
   render() {
-    const expenses = this.dataManager.getExpenses();
-    const todayTotal = this.getTodayTotal();
-    const weekTotal = this.getWeekTotal();
+    const period = this.currentPeriod || 'day';
+    const { filtered, todayTotal, weekTotal } = this.getPeriodData(period);
     
     document.querySelector('#app').innerHTML = `
       <div class="dashboard">
@@ -16,7 +15,16 @@ class ExpenseManager {
         <main class="dashboard-main">
           <div class="page-header">
             <h2>Expense Tracking</h2>
-            <button id="addExpenseBtn" class="btn btn-primary">Add Expense</button>
+            <div>
+              <select id="expensePeriod">
+                <option value="day" ${period==='day'?'selected':''}>Today</option>
+                <option value="week" ${period==='week'?'selected':''}>This Week</option>
+                <option value="month" ${period==='month'?'selected':''}>This Month</option>
+                <option value="year" ${period==='year'?'selected':''}>This Year</option>
+                <option value="all" ${period==='all'?'selected':''}>All</option>
+              </select>
+              <button id="addExpenseBtn" class="btn btn-primary">Add Expense</button>
+            </div>
           </div>
           
           <div class="stats-grid">
@@ -44,7 +52,7 @@ class ExpenseManager {
                   </tr>
                 </thead>
                 <tbody>
-                  ${expenses.map(item => this.renderExpenseRow(item)).join('')}
+                  ${filtered.map(item => this.renderExpenseRow(item)).join('')}
                 </tbody>
               </table>
             </div>
@@ -113,6 +121,7 @@ class ExpenseManager {
     const closeBtn = document.querySelector('.close');
     const cancelBtn = document.getElementById('cancelExpenseBtn');
     const form = document.getElementById('expenseForm');
+    const periodSelect = document.getElementById('expensePeriod');
 
     // Set today's date as default
     document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
@@ -121,6 +130,10 @@ class ExpenseManager {
     closeBtn.addEventListener('click', () => this.hideModal());
     cancelBtn.addEventListener('click', () => this.hideModal());
     form.addEventListener('submit', (e) => this.handleSubmit(e));
+    periodSelect.addEventListener('change', (e) => {
+      this.currentPeriod = e.target.value;
+      this.render();
+    });
 
     window.onclick = (event) => {
       if (event.target === modal) {
@@ -187,11 +200,48 @@ class ExpenseManager {
       .reduce((total, item) => total + item.amount, 0);
   }
 
+  getPeriodData(period) {
+    const all = this.dataManager.getExpenses();
+    const today = new Date();
+    let start;
+    switch (period) {
+      case 'day':
+        start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        break;
+      case 'week':
+        start = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        start = new Date(today.getFullYear(), today.getMonth(), 1);
+        break;
+      case 'year':
+        start = new Date(today.getFullYear(), 0, 1);
+        break;
+      default:
+        start = new Date(0);
+    }
+    const filtered = all.filter(item => {
+      const d = new Date(item.date);
+      return d >= start && d <= today;
+    });
+    return {
+      filtered,
+      todayTotal: this.getTodayTotal(),
+      weekTotal: this.getWeekTotal()
+    };
+  }
+
   getHeader() {
     return `
       <header class="dashboard-header">
         <div class="header-content">
-          <h1>🏨 Harar Bridge Hotel - Expenses</h1>
+          <div class="header-logo">
+            <div class="header-logo-image">
+              <img src="/assets/images/bridge.jpg" alt="Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; font-size:1.2rem;">🏨</div>
+            </div>
+            <div class="header-logo-text">Bridge</div>
+          </div>
           <div class="user-info">
             <span>Welcome, ${window.authManager.currentUser.name}</span>
             <button id="logoutBtn" class="logout-btn">Logout</button>
