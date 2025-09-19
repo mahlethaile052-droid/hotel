@@ -24,6 +24,7 @@ class ExpenseManager {
                 <option value="all" ${period==='all'?'selected':''}>All</option>
               </select>
               <button id="addExpenseBtn" class="btn btn-primary">Add Expense</button>
+              <button id="bankExpenseBtn" class="btn btn-primary" style="background:#16a34a;margin-left:8px;">Bank Payment (Neged)</button>
             </div>
           </div>
           
@@ -94,6 +95,36 @@ class ExpenseManager {
               </form>
             </div>
           </div>
+
+          <div id="bankExpenseModal" class="modal" style="display:none;">
+            <div class="modal-content">
+              <span class="close" id="bankClose">&times;</span>
+              <h3>Withdraw from Neged Bank</h3>
+              <form id="bankExpenseForm">
+                <div class="form-group">
+                  <label for="bankAccount">Account Number</label>
+                  <input type="text" id="bankAccount" required placeholder="e.g. 1000-XXXX-XXXX" />
+                </div>
+                <div class="form-group">
+                  <label for="bankAmount">Amount (ETB)</label>
+                  <input type="number" id="bankAmount" step="0.01" min="0.01" required />
+                </div>
+                <div class="form-group">
+                  <label for="bankDesc">Description (optional)</label>
+                  <input type="text" id="bankDesc" placeholder="Purpose of withdrawal" />
+                </div>
+                <div class="form-group">
+                  <label for="bankDate">Date</label>
+                  <input type="date" id="bankDate" required />
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary" id="bankSubmit">Withdraw</button>
+                  <button type="button" id="bankCancel" class="btn btn-secondary">Cancel</button>
+                </div>
+              </form>
+              <small style="display:block;margin-top:8px;color:#6b7280;">This records a bank withdrawal and adds it to expenses.</small>
+            </div>
+          </div>
         </main>
       </div>
     `;
@@ -118,15 +149,23 @@ class ExpenseManager {
   attachEventListeners() {
     const modal = document.getElementById('expenseModal');
     const addBtn = document.getElementById('addExpenseBtn');
+    const bankBtn = document.getElementById('bankExpenseBtn');
     const closeBtn = document.querySelector('.close');
     const cancelBtn = document.getElementById('cancelExpenseBtn');
     const form = document.getElementById('expenseForm');
     const periodSelect = document.getElementById('expensePeriod');
 
+    // Bank modal elements
+    const bankModal = document.getElementById('bankExpenseModal');
+    const bankForm = document.getElementById('bankExpenseForm');
+    const bankCancel = document.getElementById('bankCancel');
+    const bankClose = document.getElementById('bankClose');
+
     // Set today's date as default
     document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
 
     addBtn.addEventListener('click', () => this.showModal());
+    bankBtn.addEventListener('click', () => this.showBankModal());
     closeBtn.addEventListener('click', () => this.hideModal());
     cancelBtn.addEventListener('click', () => this.hideModal());
     form.addEventListener('submit', (e) => this.handleSubmit(e));
@@ -134,6 +173,13 @@ class ExpenseManager {
       this.currentPeriod = e.target.value;
       this.render();
     });
+
+    // Bank modal handlers
+    bankClose.addEventListener('click', () => this.hideBankModal());
+    bankCancel.addEventListener('click', () => this.hideBankModal());
+    // Default bank date
+    document.getElementById('bankDate').value = new Date().toISOString().split('T')[0];
+    bankForm.addEventListener('submit', (e) => this.handleBankWithdraw(e));
 
     window.onclick = (event) => {
       if (event.target === modal) {
@@ -158,7 +204,65 @@ class ExpenseManager {
     document.getElementById('expenseModal').style.display = 'none';
   }
 
-  handleSubmit(e) {
+  showBankModal() {
+    document.getElementById('bankExpenseModal').style.display = 'block';
+  }
+
+  hideBankModal() {
+    document.getElementById('bankExpenseModal').style.display = 'none';
+  }
+
+  showMessage(message, type = 'info') {
+    // Remove existing message if any
+    const existingMessage = document.getElementById('expenseMessage');
+    if (existingMessage) {
+      existingMessage.remove();
+    }
+
+    // Create message element
+    const messageDiv = document.createElement('div');
+    messageDiv.id = 'expenseMessage';
+    messageDiv.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 600;
+      z-index: 10000;
+      max-width: 300px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: all 0.3s ease;
+    `;
+
+    // Set colors based on type
+    if (type === 'success') {
+      messageDiv.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+    } else if (type === 'error') {
+      messageDiv.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+    } else {
+      messageDiv.style.background = 'linear-gradient(135deg, #3b82f6, #2563eb)';
+    }
+
+    messageDiv.textContent = message;
+    document.body.appendChild(messageDiv);
+
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+      if (messageDiv.parentNode) {
+        messageDiv.style.opacity = '0';
+        messageDiv.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          if (messageDiv.parentNode) {
+            messageDiv.remove();
+          }
+        }, 300);
+      }
+    }, 3000);
+  }
+
+  async handleSubmit(e) {
     e.preventDefault();
     
     const expenseData = {
@@ -168,17 +272,113 @@ class ExpenseManager {
       date: document.getElementById('expenseDate').value
     };
 
-    this.dataManager.addExpense(expenseData);
-    this.hideModal();
-    this.render();
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+
+    try {
+      // Show loading state
+      submitBtn.textContent = 'Saving...';
+      submitBtn.disabled = true;
+
+      const result = await this.dataManager.addExpense(expenseData);
+      
+      if (result.success) {
+        this.showMessage('Expense record saved successfully!', 'success');
+        this.hideModal();
+        this.render();
+      } else {
+        this.showMessage(`Error: ${result.error}`, 'error');
+      }
+    } catch (error) {
+      console.error('Error saving expense:', error);
+      this.showMessage('An unexpected error occurred', 'error');
+    } finally {
+      // Reset button state
+      submitBtn.textContent = originalText;
+      submitBtn.disabled = false;
+    }
   }
 
-  deleteExpense(id) {
-    if (confirm('Are you sure you want to delete this expense record?')) {
-      const expenses = this.dataManager.getExpenses();
-      const filtered = expenses.filter(item => item.id !== id);
-      localStorage.setItem('expenses', JSON.stringify(filtered));
+  async handleBankWithdraw(e) {
+    e.preventDefault();
+
+    const account = document.getElementById('bankAccount').value.trim();
+    const amount = parseFloat(document.getElementById('bankAmount').value);
+    const description = document.getElementById('bankDesc').value.trim();
+    const date = document.getElementById('bankDate').value;
+
+    const submitBtn = document.getElementById('bankSubmit');
+    const originalText = submitBtn.textContent;
+
+    if (!account || !amount || amount <= 0) {
+      this.showMessage('Enter a valid account and amount', 'error');
+      return;
+    }
+
+    try {
+      submitBtn.textContent = 'Processing...';
+      submitBtn.disabled = true;
+
+      // 1) Record a payment with provider 'bank' (simulated withdrawal)
+      const email = window.authManager.getUserEmail() || 'cashier@bridge.local';
+      const payRes = await this.dataManager.createPayment({
+        amount,
+        currency: 'ETB',
+        description: description || `Neged Bank withdrawal (${account})`,
+        provider: 'bank',
+        providerPaymentId: null,
+        userEmail: email,
+        status: 'captured'
+      });
+      if (!payRes.success) throw new Error(payRes.error);
+
+      // 2) Add an expense row reflecting the withdrawal
+      const expenseRes = await this.dataManager.addExpense({
+        category: 'purchases',
+        description: description || `Bank withdrawal from Neged (${account})`,
+        amount,
+        date
+      });
+      if (!expenseRes.success) throw new Error(expenseRes.error);
+
+      this.hideBankModal();
+      this.showMessage('Bank withdrawal recorded and added to expenses', 'success');
       this.render();
+    } catch (err) {
+      console.error('Bank withdrawal failed', err);
+      this.showMessage('Failed to record bank withdrawal', 'error');
+    } finally {
+      submitBtn.textContent = originalText;
+      submitBtn.disabled = false;
+    }
+  }
+
+  async deleteExpense(id) {
+    if (confirm('Are you sure you want to delete this expense record?')) {
+      try {
+        // Show loading state on the delete button
+        const deleteBtn = event.target;
+        const originalText = deleteBtn.textContent;
+        deleteBtn.textContent = 'Deleting...';
+        deleteBtn.disabled = true;
+
+        const result = await this.dataManager.deleteExpense(id);
+        
+        if (result.success) {
+          this.showMessage('Expense record deleted successfully!', 'success');
+          this.render();
+        } else {
+          this.showMessage(`Error: ${result.error}`, 'error');
+        }
+      } catch (error) {
+        console.error('Error deleting expense:', error);
+        this.showMessage('An unexpected error occurred', 'error');
+      } finally {
+        // Reset button state
+        const deleteBtn = event.target;
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.disabled = false;
+      }
     }
   }
 

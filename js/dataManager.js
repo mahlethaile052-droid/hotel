@@ -1,28 +1,151 @@
+import { supabase, TABLES, handleSupabaseError, handleSupabaseSuccess } from './supabase.js';
+
 class DataManager {
     constructor() {
-        this.employees = JSON.parse(localStorage.getItem('employees')) || [
-            { id: 1, name: "Ahmed Mohammed", role: "chef", phone: "+251912345678", email: "ahmed@hararbridge.com", salary: 8000, hireDate: "2023-01-15" },
-            { id: 2, name: "Selamawit Bekele", role: "cashier", phone: "+251911234567", email: "selam@hararbridge.com", salary: 5000, hireDate: "2023-03-20" },
-            { id: 3, name: "Tewodros Alemayehu", role: "manager", phone: "+251922345678", email: "tewodros@hararbridge.com", salary: 12000, hireDate: "2022-11-10" }
-        ];
+        this.employees = [];
+        this.income = [];
+        this.expenses = [];
+        this.inventory = [];
+        this.payments = [];
+        this.isLoading = false;
         
-        this.income = JSON.parse(localStorage.getItem('income')) || [
-            { id: 1, category: "meals", description: "Lunch service", amount: 12500, date: "2023-10-15" },
-            { id: 2, category: "drinks", description: "Beverage sales", amount: 5600, date: "2023-10-15" },
-            { id: 3, category: "meat", description: "Special grill night", amount: 8900, date: "2023-10-14" }
-        ];
-        
-        this.expenses = JSON.parse(localStorage.getItem('expenses')) || [
-            { id: 1, category: "supplies", description: "Kitchen supplies", amount: 2500, date: "2023-10-15" },
-            { id: 2, category: "utilities", description: "Electricity bill", amount: 1800, date: "2023-10-14" },
-            { id: 3, category: "salaries", description: "Staff payroll", amount: 25000, date: "2023-10-10" }
-        ];
-        
-        this.inventory = JSON.parse(localStorage.getItem('inventory')) || [
-            { id: 1, name: "Rice", category: "supplies", quantity: 50, unit: "kg", minStock: 20, price: 60, lastUpdated: "2023-10-15" },
-            { id: 2, name: "Chicken", category: "meat", quantity: 25, unit: "kg", minStock: 15, price: 180, lastUpdated: "2023-10-14" },
-            { id: 3, name: "Soft Drinks", category: "drinks", quantity: 10, unit: "cases", minStock: 5, price: 450, lastUpdated: "2023-10-13" }
-        ];
+        // Initialize data from Supabase
+        this.init();
+    }
+
+    async init() {
+        try {
+            await Promise.all([
+                this.loadEmployees(),
+                this.loadIncome(),
+                this.loadExpenses(),
+                this.loadInventory(),
+                this.loadPayments()
+            ]);
+        } catch (error) {
+            console.error('Error initializing data:', error);
+        }
+    }
+
+    async loadPayments() {
+        try {
+            const { data, error } = await supabase
+                .from(TABLES.PAYMENTS)
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            this.payments = data || [];
+        } catch (error) {
+            console.error('Error loading payments:', error);
+            this.payments = [];
+        }
+    }
+
+    getPayments() {
+        return this.payments;
+    }
+
+    async createPayment({ amount, currency = 'ETB', description, provider = 'paypal', providerPaymentId, userEmail, status = 'created' }) {
+        try {
+            this.isLoading = true;
+            const { data, error } = await supabase
+                .from(TABLES.PAYMENTS)
+                .insert([{ amount, currency, description, status, provider, provider_payment_id: providerPaymentId, user_email: userEmail }])
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            this.payments.unshift(data);
+            return handleSupabaseSuccess(data, 'create payment');
+        } catch (error) {
+            return handleSupabaseError(error, 'create payment');
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    async updatePaymentStatus(id, status, providerPaymentId) {
+        try {
+            this.isLoading = true;
+            const { data, error } = await supabase
+                .from(TABLES.PAYMENTS)
+                .update({ status, provider_payment_id: providerPaymentId, updated_at: new Date().toISOString() })
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            const index = this.payments.findIndex(p => p.id === id);
+            if (index !== -1) this.payments[index] = data;
+            return handleSupabaseSuccess(data, 'update payment');
+        } catch (error) {
+            return handleSupabaseError(error, 'update payment');
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    async loadEmployees() {
+        try {
+            const { data, error } = await supabase
+                .from(TABLES.EMPLOYEES)
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            this.employees = data || [];
+        } catch (error) {
+            console.error('Error loading employees:', error);
+            this.employees = [];
+        }
+    }
+
+    async loadIncome() {
+        try {
+            const { data, error } = await supabase
+                .from(TABLES.INCOME)
+                .select('*')
+                .order('date', { ascending: false });
+
+            if (error) throw error;
+            this.income = data || [];
+        } catch (error) {
+            console.error('Error loading income:', error);
+            this.income = [];
+        }
+    }
+
+    async loadExpenses() {
+        try {
+            const { data, error } = await supabase
+                .from(TABLES.EXPENSES)
+                .select('*')
+                .order('date', { ascending: false });
+
+            if (error) throw error;
+            this.expenses = data || [];
+        } catch (error) {
+            console.error('Error loading expenses:', error);
+            this.expenses = [];
+        }
+    }
+
+    async loadInventory() {
+        try {
+            const { data, error } = await supabase
+                .from(TABLES.INVENTORY)
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            this.inventory = data || [];
+        } catch (error) {
+            console.error('Error loading inventory:', error);
+            this.inventory = [];
+        }
     }
     
     // Employee methods
@@ -30,31 +153,83 @@ class DataManager {
         return this.employees;
     }
     
-    addEmployee(employeeData) {
-        const newEmployee = {
-            id: Date.now(),
-            ...employeeData
-        };
-        this.employees.push(newEmployee);
-        this.saveEmployees();
-        return newEmployee;
-    }
-    
-    updateEmployee(id, employeeData) {
-        const index = this.employees.findIndex(emp => emp.id === id);
-        if (index !== -1) {
-            this.employees[index] = { ...this.employees[index], ...employeeData };
-            this.saveEmployees();
+    async addEmployee(employeeData) {
+        try {
+            this.isLoading = true;
+            const { data, error } = await supabase
+                .from(TABLES.EMPLOYEES)
+                .insert([{
+                    name: employeeData.name,
+                    role: employeeData.role,
+                    phone: employeeData.phone,
+                    email: employeeData.email,
+                    salary: employeeData.salary,
+                    hire_date: employeeData.hireDate
+                }])
+                .select()
+                .single();
+
+            if (error) throw error;
+            
+            this.employees.unshift(data);
+            return handleSupabaseSuccess(data, 'add employee');
+        } catch (error) {
+            return handleSupabaseError(error, 'add employee');
+        } finally {
+            this.isLoading = false;
         }
     }
     
-    deleteEmployee(id) {
-        this.employees = this.employees.filter(emp => emp.id !== id);
-        this.saveEmployees();
+    async updateEmployee(id, employeeData) {
+        try {
+            this.isLoading = true;
+            const { data, error } = await supabase
+                .from(TABLES.EMPLOYEES)
+                .update({
+                    name: employeeData.name,
+                    role: employeeData.role,
+                    phone: employeeData.phone,
+                    email: employeeData.email,
+                    salary: employeeData.salary,
+                    hire_date: employeeData.hireDate,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            
+            const index = this.employees.findIndex(emp => emp.id === id);
+            if (index !== -1) {
+                this.employees[index] = data;
+            }
+            
+            return handleSupabaseSuccess(data, 'update employee');
+        } catch (error) {
+            return handleSupabaseError(error, 'update employee');
+        } finally {
+            this.isLoading = false;
+        }
     }
     
-    saveEmployees() {
-        localStorage.setItem('employees', JSON.stringify(this.employees));
+    async deleteEmployee(id) {
+        try {
+            this.isLoading = true;
+            const { error } = await supabase
+                .from(TABLES.EMPLOYEES)
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            
+            this.employees = this.employees.filter(emp => emp.id !== id);
+            return handleSupabaseSuccess(null, 'delete employee');
+        } catch (error) {
+            return handleSupabaseError(error, 'delete employee');
+        } finally {
+            this.isLoading = false;
+        }
     }
     
     // Income methods
@@ -62,32 +237,80 @@ class DataManager {
         return this.income;
     }
     
-    addIncome(incomeData) {
-        const newIncome = {
-            id: Date.now(),
-            ...incomeData
-        };
-        this.income.push(newIncome);
-        this.saveIncome();
-        return newIncome;
+    async addIncome(incomeData) {
+        try {
+            this.isLoading = true;
+            const { data, error } = await supabase
+                .from(TABLES.INCOME)
+                .insert([{
+                    category: incomeData.category,
+                    description: incomeData.description,
+                    amount: incomeData.amount,
+                    date: incomeData.date
+                }])
+                .select()
+                .single();
+
+            if (error) throw error;
+            
+            this.income.unshift(data);
+            return handleSupabaseSuccess(data, 'add income');
+        } catch (error) {
+            return handleSupabaseError(error, 'add income');
+        } finally {
+            this.isLoading = false;
+        }
     }
     
-    getIncomeByPeriod(startDate, endDate) {
-        return this.income.filter(item => {
-            const itemDate = new Date(item.date);
-            return itemDate >= new Date(startDate) && itemDate <= new Date(endDate);
-        });
+    async getIncomeByPeriod(startDate, endDate) {
+        try {
+            const { data, error } = await supabase
+                .from(TABLES.INCOME)
+                .select('*')
+                .gte('date', startDate)
+                .lte('date', endDate)
+                .order('date', { ascending: false });
+
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Error fetching income by period:', error);
+            return [];
+        }
     }
     
-    getThisMonthIncome() {
-        const today = new Date();
-        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-        return this.getIncomeByPeriod(firstDay, today)
-            .reduce((total, item) => total + item.amount, 0);
+    async getThisMonthIncome() {
+        try {
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            const incomeData = await this.getIncomeByPeriod(
+                firstDay.toISOString().split('T')[0], 
+                today.toISOString().split('T')[0]
+            );
+            return incomeData.reduce((total, item) => total + parseFloat(item.amount), 0);
+        } catch (error) {
+            console.error('Error calculating this month income:', error);
+            return 0;
+        }
     }
-    
-    saveIncome() {
-        localStorage.setItem('income', JSON.stringify(this.income));
+
+    async deleteIncome(id) {
+        try {
+            this.isLoading = true;
+            const { error } = await supabase
+                .from(TABLES.INCOME)
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            
+            this.income = this.income.filter(item => item.id !== id);
+            return handleSupabaseSuccess(null, 'delete income');
+        } catch (error) {
+            return handleSupabaseError(error, 'delete income');
+        } finally {
+            this.isLoading = false;
+        }
     }
     
     // Expense methods
@@ -95,32 +318,80 @@ class DataManager {
         return this.expenses;
     }
     
-    addExpense(expenseData) {
-        const newExpense = {
-            id: Date.now(),
-            ...expenseData
-        };
-        this.expenses.push(newExpense);
-        this.saveExpenses();
-        return newExpense;
+    async addExpense(expenseData) {
+        try {
+            this.isLoading = true;
+            const { data, error } = await supabase
+                .from(TABLES.EXPENSES)
+                .insert([{
+                    category: expenseData.category,
+                    description: expenseData.description,
+                    amount: expenseData.amount,
+                    date: expenseData.date
+                }])
+                .select()
+                .single();
+
+            if (error) throw error;
+            
+            this.expenses.unshift(data);
+            return handleSupabaseSuccess(data, 'add expense');
+        } catch (error) {
+            return handleSupabaseError(error, 'add expense');
+        } finally {
+            this.isLoading = false;
+        }
     }
     
-    getExpensesByPeriod(startDate, endDate) {
-        return this.expenses.filter(item => {
-            const itemDate = new Date(item.date);
-            return itemDate >= new Date(startDate) && itemDate <= new Date(endDate);
-        });
+    async getExpensesByPeriod(startDate, endDate) {
+        try {
+            const { data, error } = await supabase
+                .from(TABLES.EXPENSES)
+                .select('*')
+                .gte('date', startDate)
+                .lte('date', endDate)
+                .order('date', { ascending: false });
+
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Error fetching expenses by period:', error);
+            return [];
+        }
     }
     
-    getThisMonthExpenses() {
-        const today = new Date();
-        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-        return this.getExpensesByPeriod(firstDay, today)
-            .reduce((total, item) => total + item.amount, 0);
+    async getThisMonthExpenses() {
+        try {
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            const expenseData = await this.getExpensesByPeriod(
+                firstDay.toISOString().split('T')[0], 
+                today.toISOString().split('T')[0]
+            );
+            return expenseData.reduce((total, item) => total + parseFloat(item.amount), 0);
+        } catch (error) {
+            console.error('Error calculating this month expenses:', error);
+            return 0;
+        }
     }
-    
-    saveExpenses() {
-        localStorage.setItem('expenses', JSON.stringify(this.expenses));
+
+    async deleteExpense(id) {
+        try {
+            this.isLoading = true;
+            const { error } = await supabase
+                .from(TABLES.EXPENSES)
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            
+            this.expenses = this.expenses.filter(item => item.id !== id);
+            return handleSupabaseSuccess(null, 'delete expense');
+        } catch (error) {
+            return handleSupabaseError(error, 'delete expense');
+        } finally {
+            this.isLoading = false;
+        }
     }
     
     // Inventory methods
@@ -128,40 +399,89 @@ class DataManager {
         return this.inventory;
     }
     
-    addInventoryItem(itemData) {
-        const newItem = {
-            id: Date.now(),
-            lastUpdated: new Date().toISOString().split('T')[0],
-            ...itemData
-        };
-        this.inventory.push(newItem);
-        this.saveInventory();
-        return newItem;
-    }
-    
-    updateInventoryItem(id, itemData) {
-        const index = this.inventory.findIndex(item => item.id === id);
-        if (index !== -1) {
-            this.inventory[index] = { 
-                ...this.inventory[index], 
-                ...itemData,
-                lastUpdated: new Date().toISOString().split('T')[0]
-            };
-            this.saveInventory();
+    async addInventoryItem(itemData) {
+        try {
+            this.isLoading = true;
+            const { data, error } = await supabase
+                .from(TABLES.INVENTORY)
+                .insert([{
+                    name: itemData.name,
+                    category: itemData.category,
+                    quantity: itemData.quantity,
+                    unit: itemData.unit,
+                    min_stock: itemData.minStock,
+                    price: itemData.price,
+                    last_updated: new Date().toISOString().split('T')[0]
+                }])
+                .select()
+                .single();
+
+            if (error) throw error;
+            
+            this.inventory.unshift(data);
+            return handleSupabaseSuccess(data, 'add inventory item');
+        } catch (error) {
+            return handleSupabaseError(error, 'add inventory item');
+        } finally {
+            this.isLoading = false;
         }
     }
     
-    deleteInventoryItem(id) {
-        this.inventory = this.inventory.filter(item => item.id !== id);
-        this.saveInventory();
+    async updateInventoryItem(id, itemData) {
+        try {
+            this.isLoading = true;
+            const { data, error } = await supabase
+                .from(TABLES.INVENTORY)
+                .update({
+                    name: itemData.name,
+                    category: itemData.category,
+                    quantity: itemData.quantity,
+                    unit: itemData.unit,
+                    min_stock: itemData.minStock,
+                    price: itemData.price,
+                    last_updated: new Date().toISOString().split('T')[0],
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            
+            const index = this.inventory.findIndex(item => item.id === id);
+            if (index !== -1) {
+                this.inventory[index] = data;
+            }
+            
+            return handleSupabaseSuccess(data, 'update inventory item');
+        } catch (error) {
+            return handleSupabaseError(error, 'update inventory item');
+        } finally {
+            this.isLoading = false;
+        }
+    }
+    
+    async deleteInventoryItem(id) {
+        try {
+            this.isLoading = true;
+            const { error } = await supabase
+                .from(TABLES.INVENTORY)
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            
+            this.inventory = this.inventory.filter(item => item.id !== id);
+            return handleSupabaseSuccess(null, 'delete inventory item');
+        } catch (error) {
+            return handleSupabaseError(error, 'delete inventory item');
+        } finally {
+            this.isLoading = false;
+        }
     }
     
     getLowStockItems() {
-        return this.inventory.filter(item => item.quantity <= item.minStock);
-    }
-    
-    saveInventory() {
-        localStorage.setItem('inventory', JSON.stringify(this.inventory));
+        return this.inventory.filter(item => parseFloat(item.quantity) <= parseFloat(item.min_stock));
     }
 }
 

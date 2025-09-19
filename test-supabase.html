@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Test</title>
+</head>
+<body>
+    <h1>Supabase Connection Test</h1>
+    <div id="status">Testing connection...</div>
+    <div id="details"></div>
+
+    <script type="module">
+        import { supabase } from './js/supabase.js';
+        
+        async function testConnection() {
+            const statusDiv = document.getElementById('status');
+            const detailsDiv = document.getElementById('details');
+            
+            try {
+                // Test basic connection
+                const { data, error } = await supabase
+                    .from('employees')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) {
+                    statusDiv.innerHTML = '❌ Connection Failed';
+                    detailsDiv.innerHTML = `
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <p><strong>Code:</strong> ${error.code}</p>
+                        <p><strong>Hint:</strong> ${error.hint || 'No hint available'}</p>
+                        <p><strong>Details:</strong> ${error.details || 'No details available'}</p>
+                    `;
+                } else {
+                    statusDiv.innerHTML = '✅ Connection Successful';
+                    detailsDiv.innerHTML = '<p>Supabase connection is working properly!</p>';
+                }
+            } catch (err) {
+                statusDiv.innerHTML = '❌ JavaScript Error';
+                detailsDiv.innerHTML = `
+                    <p><strong>Error:</strong> ${err.message}</p>
+                    <p><strong>Stack:</strong> ${err.stack}</p>
+                `;
+            }
+        }
+        
+        testConnection();
+    </script>
+</body>
+</html>

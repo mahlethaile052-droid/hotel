@@ -209,7 +209,57 @@ class EmployeeManager {
         document.getElementById('employeeModal').style.display = 'none';
     }
 
-    handleSubmit(e) {
+    showMessage(message, type = 'info') {
+        // Remove existing message if any
+        const existingMessage = document.getElementById('employeeMessage');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+
+        // Create message element
+        const messageDiv = document.createElement('div');
+        messageDiv.id = 'employeeMessage';
+        messageDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 10000;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+        `;
+
+        // Set colors based on type
+        if (type === 'success') {
+            messageDiv.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+        } else if (type === 'error') {
+            messageDiv.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+        } else {
+            messageDiv.style.background = 'linear-gradient(135deg, #3b82f6, #2563eb)';
+        }
+
+        messageDiv.textContent = message;
+        document.body.appendChild(messageDiv);
+
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            if (messageDiv.parentNode) {
+                messageDiv.style.opacity = '0';
+                messageDiv.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (messageDiv.parentNode) {
+                        messageDiv.remove();
+                    }
+                }, 300);
+            }
+        }, 3000);
+    }
+
+    async handleSubmit(e) {
         e.preventDefault();
         
         const age = parseInt(document.getElementById('employeeAge').value);
@@ -235,15 +285,37 @@ class EmployeeManager {
         };
 
         const employeeId = document.getElementById('employeeId').value;
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
 
-        if (employeeId) {
-            this.dataManager.updateEmployee(parseInt(employeeId), employeeData);
-        } else {
-            this.dataManager.addEmployee(employeeData);
+        try {
+            // Show loading state
+            submitBtn.textContent = 'Saving...';
+            submitBtn.disabled = true;
+
+            let result;
+            if (employeeId) {
+                result = await this.dataManager.updateEmployee(parseInt(employeeId), employeeData);
+            } else {
+                result = await this.dataManager.addEmployee(employeeData);
+            }
+
+            if (result.success) {
+                // Show success message briefly
+                this.showMessage('Employee saved successfully!', 'success');
+                this.hideModal();
+                this.render(); // Re-render to show updated data
+            } else {
+                this.showMessage(`Error: ${result.error}`, 'error');
+            }
+        } catch (error) {
+            console.error('Error saving employee:', error);
+            this.showMessage('An unexpected error occurred', 'error');
+        } finally {
+            // Reset button state
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
         }
-
-        this.hideModal();
-        this.render();
     }
 
     editEmployee(id) {
@@ -253,10 +325,32 @@ class EmployeeManager {
         }
     }
 
-    deleteEmployee(id) {
+    async deleteEmployee(id) {
         if (confirm('Are you sure you want to delete this employee?')) {
-            this.dataManager.deleteEmployee(id);
-            this.render();
+            try {
+                // Show loading state on the delete button
+                const deleteBtn = event.target;
+                const originalText = deleteBtn.textContent;
+                deleteBtn.textContent = 'Deleting...';
+                deleteBtn.disabled = true;
+
+                const result = await this.dataManager.deleteEmployee(id);
+                
+                if (result.success) {
+                    this.showMessage('Employee deleted successfully!', 'success');
+                    this.render(); // Re-render to show updated data
+                } else {
+                    this.showMessage(`Error: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting employee:', error);
+                this.showMessage('An unexpected error occurred', 'error');
+            } finally {
+                // Reset button state
+                const deleteBtn = event.target;
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.disabled = false;
+            }
         }
     }
 }

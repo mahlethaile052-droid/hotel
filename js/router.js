@@ -4,6 +4,7 @@ import ExpenseManager from './components/expenseManager.js';
 import InventoryManager from './components/inventoryManager.js';
 import ReportsManager from './components/reportsManager.js';
 import TaxManager from './components/taxManager.js';
+import PaymentsManager from './components/paymentsManager.js';
 
 class Router {
   constructor(authManager, dataManager) {
@@ -19,7 +20,8 @@ class Router {
       '/expenses': () => this.showProtectedExpenses(),
       '/inventory': () => this.showProtectedInventory(),
       '/reports': () => this.showProtectedReports(),
-      '/tax': () => this.showProtectedTax()
+      '/tax': () => this.showProtectedTax(),
+      '/payments': () => this.showProtectedPayments()
     };
   }
 
@@ -66,10 +68,10 @@ class Router {
           
             <form id="loginForm" class="login-form" style="display:flex;flex-direction:column;gap:1rem;">
               <div class="form-group" style="display:flex;flex-direction:column;gap:0.5rem;">
-                <label for="username" style="color:#374151;font-weight:600;">Username</label>
+                <label for="username" style="color:#374151;font-weight:600;">Email</label>
                 <div class="input-group" style="position:relative;">
-                  <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#9ca3af;">👤</span>
-                  <input type="text" id="username" name="username" required placeholder="Enter username" style="width:100%;padding:0.9rem 0.9rem 0.9rem 2.2rem;border:1px solid #e5e7eb;border-radius:12px;font-size:1rem;outline:none;transition:box-shadow .2s,border-color .2s;" onfocus="this.style.boxShadow='0 0 0 4px rgba(220,38,38,0.15)'; this.style.borderColor='#dc2626'" onblur="this.style.boxShadow='none'; this.style.borderColor='#e5e7eb'">
+                  <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#9ca3af;">📧</span>
+                  <input type="email" id="username" name="username" required placeholder="Enter email address" style="width:100%;padding:0.9rem 0.9rem 0.9rem 2.2rem;border:1px solid #e5e7eb;border-radius:12px;font-size:1rem;outline:none;transition:box-shadow .2s,border-color .2s;" onfocus="this.style.boxShadow='0 0 0 4px rgba(220,38,38,0.15)'; this.style.borderColor='#dc2626'" onblur="this.style.boxShadow='none'; this.style.borderColor='#e5e7eb'">
                 </div>
               </div>
               <div class="form-group" style="display:flex;flex-direction:column;gap:0.5rem;">
@@ -91,12 +93,11 @@ class Router {
           </form>
           
             <div class="demo-credentials" style="background:#f9fafb;padding:1rem;border-radius:12px;margin-top:1rem;border:1px solid #e5e7eb;">
-              <h4 style="margin:0 0 0.5rem 0;color:#374151;">Demo Credentials</h4>
-              <ul style="margin:0;padding-left:1rem;color:#6b7280;">
-              <li><strong>Admin:</strong> admin / admin123</li>
-              <li><strong>Manager:</strong> manager / manager123</li>
-              <li><strong>Staff:</strong> staff / staff123</li>
-            </ul>
+              <h4 style="margin:0 0 0.5rem 0;color:#374151;">Setup Required</h4>
+              <p style="margin:0;color:#6b7280;font-size:0.9rem;">
+                First, set up your Supabase project and create users in the Supabase dashboard. 
+                See <strong>SUPABASE_SETUP.md</strong> for detailed instructions.
+              </p>
             </div>
           </div>
         </div>
@@ -136,17 +137,36 @@ class Router {
       </div>
     `;
 
-    document.getElementById('loginForm').addEventListener('submit', (e) => {
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const username = document.getElementById('username').value;
+      const email = document.getElementById('username').value; // Using username field for email
       const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('loginError');
       
-      if (this.authManager.login(username, password)) {
-        this.navigate('/dashboard');
-      } else {
-        const errorDiv = document.getElementById('loginError');
-        errorDiv.textContent = '❌ Invalid username or password';
+      // Show loading state
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.textContent = 'Signing In...';
+      submitBtn.disabled = true;
+      errorDiv.style.display = 'none';
+      
+      try {
+        const result = await this.authManager.login(email, password);
+        
+        if (result.success) {
+          this.navigate('/dashboard');
+        } else {
+          errorDiv.textContent = `❌ ${result.error}`;
+          errorDiv.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        errorDiv.textContent = '❌ An unexpected error occurred';
         errorDiv.style.display = 'block';
+      } finally {
+        // Reset button state
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
       }
     });
 
@@ -216,6 +236,14 @@ class Router {
       return;
     }
     this.showTaxPage();
+  }
+
+  showProtectedPayments() {
+    if (!this.authManager.requireAuth()) {
+      this.navigate('/login');
+      return;
+    }
+    this.showPaymentsPage();
   }
 
   // --- Dashboard ---
@@ -295,6 +323,11 @@ class Router {
               <p style="margin:0;color:#6b7280;">Calculate & manage taxes</p>
               <button onclick="router.navigate('/tax')" class="btn btn-primary" style="margin-top:0.5rem;">Open</button>
         </div>
+            <div style="background:rgba(255,255,255,0.9);border:1px solid rgba(255,255,255,0.6);backdrop-filter:saturate(140%) blur(6px);padding:1.25rem;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,0.15);display:flex;flex-direction:column;gap:0.5rem;">
+              <h3 style="margin:0;color:#111827;font-size:1.05rem;">💳 Payments</h3>
+              <p style="margin:0;color:#6b7280;">Accept and track payments</p>
+              <button onclick="router.navigate('/payments')" class="btn btn-primary" style="margin-top:0.5rem;">Open</button>
+            </div>
           </section>
         </main>
       </div>
@@ -380,13 +413,25 @@ class Router {
     this.attachLogoutHandler();
   }
 
+  showPaymentsPage() {
+    const paymentsManager = new PaymentsManager(this.dataManager);
+    paymentsManager.render();
+    this.attachLogoutHandler();
+  }
+
   // --- Helpers ---
   attachLogoutHandler() {
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
-      logoutBtn.addEventListener('click', () => {
-        this.authManager.logout();
-        this.navigate('/login');
+      logoutBtn.addEventListener('click', async () => {
+        try {
+          await this.authManager.logout();
+          this.navigate('/login');
+        } catch (error) {
+          console.error('Logout error:', error);
+          // Still navigate to login even if logout fails
+          this.navigate('/login');
+        }
       });
     }
   }
