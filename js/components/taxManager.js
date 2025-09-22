@@ -8,9 +8,9 @@ class TaxManager {
         };
     }
 
-    render() {
+    async render() {
         const period = this.currentPeriod || 'month';
-        const { incomeData, taxData } = this.calculateTaxes(period);
+        const { incomeData, taxData } = await this.calculateTaxes(period);
         
         document.querySelector('#app').innerHTML = `
             <div class="dashboard" style="min-height:100vh;background:
@@ -141,8 +141,8 @@ class TaxManager {
         this.attachEventListeners();
     }
 
-    calculateTaxes(period) {
-        const periodData = this.getPeriodData(period);
+    async calculateTaxes(period) {
+        const periodData = await this.getPeriodData(period);
         const incomeData = {
             totalIncome: periodData.filtered.reduce((sum, item) => sum + item.amount, 0),
             incomeByCategory: this.groupIncomeByCategory(periodData.filtered)
@@ -159,8 +159,7 @@ class TaxManager {
         return { incomeData, taxData };
     }
 
-    getPeriodData(period) {
-        const income = this.dataManager.getIncome();
+    async getPeriodData(period) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
@@ -168,49 +167,48 @@ class TaxManager {
         let todayTotal = 0;
         let weekTotal = 0;
         
-        // Filter income by period
+        // Filter income by period using async methods
         if (period === 'day') {
             const todayStr = today.toISOString().split('T')[0];
-            filtered = income.filter(item => item.date === todayStr);
+            filtered = await this.dataManager.getIncomeByPeriod(todayStr, todayStr);
         } else if (period === 'week') {
             const weekAgo = new Date(today);
             weekAgo.setDate(today.getDate() - 7);
-            filtered = income.filter(item => {
-                const itemDate = new Date(item.date);
-                return itemDate >= weekAgo && itemDate <= today;
-            });
+            filtered = await this.dataManager.getIncomeByPeriod(
+                weekAgo.toISOString().split('T')[0], 
+                today.toISOString().split('T')[0]
+            );
         } else if (period === 'month') {
             const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-            filtered = income.filter(item => {
-                const itemDate = new Date(item.date);
-                return itemDate >= firstDayOfMonth && itemDate <= today;
-            });
+            filtered = await this.dataManager.getIncomeByPeriod(
+                firstDayOfMonth.toISOString().split('T')[0], 
+                today.toISOString().split('T')[0]
+            );
         } else if (period === 'year') {
             const firstDayOfYear = new Date(today.getFullYear(), 0, 1);
-            filtered = income.filter(item => {
-                const itemDate = new Date(item.date);
-                return itemDate >= firstDayOfYear && itemDate <= today;
-            });
+            filtered = await this.dataManager.getIncomeByPeriod(
+                firstDayOfYear.toISOString().split('T')[0], 
+                today.toISOString().split('T')[0]
+            );
         } else {
-            // All time
-            filtered = [...income];
+            // All time - get all income
+            const allIncome = this.dataManager.getIncome();
+            filtered = allIncome;
         }
         
         // Calculate today's total
         const todayStr = today.toISOString().split('T')[0];
-        todayTotal = income
-            .filter(item => item.date === todayStr)
-            .reduce((sum, item) => sum + item.amount, 0);
+        const todayIncome = await this.dataManager.getIncomeByPeriod(todayStr, todayStr);
+        todayTotal = todayIncome.reduce((sum, item) => sum + item.amount, 0);
         
         // Calculate this week's total
         const weekAgo = new Date(today);
         weekAgo.setDate(today.getDate() - 7);
-        weekTotal = income
-            .filter(item => {
-                const itemDate = new Date(item.date);
-                return itemDate >= weekAgo && itemDate <= today;
-            })
-            .reduce((sum, item) => sum + item.amount, 0);
+        const weekIncome = await this.dataManager.getIncomeByPeriod(
+            weekAgo.toISOString().split('T')[0], 
+            today.toISOString().split('T')[0]
+        );
+        weekTotal = weekIncome.reduce((sum, item) => sum + item.amount, 0);
         
         return { filtered, todayTotal, weekTotal };
     }
@@ -273,12 +271,12 @@ class TaxManager {
         const periodSelect = document.getElementById('taxPeriod');
         const taxSettingsForm = document.getElementById('taxSettingsForm');
 
-        periodSelect.addEventListener('change', (e) => {
+        periodSelect.addEventListener('change', async (e) => {
             this.currentPeriod = e.target.value;
-            this.render();
+            await this.render();
         });
 
-        taxSettingsForm.addEventListener('submit', (e) => {
+        taxSettingsForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             this.taxRates = {
@@ -291,7 +289,7 @@ class TaxManager {
             localStorage.setItem('taxRates', JSON.stringify(this.taxRates));
             
             // Re-render with updated rates
-            this.render();
+            await this.render();
         });
 
         // Logout handler

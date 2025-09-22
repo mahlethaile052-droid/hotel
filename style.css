@@ -209,6 +209,18 @@ p {
   box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .login-btn {
   width: 100%;
   padding: 0.75rem;

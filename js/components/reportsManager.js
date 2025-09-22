@@ -3,7 +3,9 @@ class ReportsManager {
         this.dataManager = dataManager;
     }
 
-    render() {
+    async render() {
+        const financialSummary = await this.renderFinancialSummary();
+        
         document.querySelector('#app').innerHTML = `
             <div class="dashboard">
                 <header class="dashboard-header">
@@ -79,7 +81,7 @@ class ReportsManager {
                         <div class="report-card">
                             <h3>Financial Summary</h3>
                             <div id="financialSummary">
-                                ${this.renderFinancialSummary()}
+                                ${financialSummary}
                             </div>
                         </div>
                         
@@ -105,10 +107,10 @@ class ReportsManager {
         this.initializeCharts();
     }
 
-    renderFinancialSummary() {
+    async renderFinancialSummary() {
         const period = this.getCurrentPeriod();
-        const income = this.dataManager.getIncomeByPeriod(period.start, period.end);
-        const expenses = this.dataManager.getExpensesByPeriod(period.start, period.end);
+        const income = await this.dataManager.getIncomeByPeriod(period.start, period.end);
+        const expenses = await this.dataManager.getExpensesByPeriod(period.start, period.end);
         
         const totalIncome = income.reduce((sum, item) => sum + item.amount, 0);
         const totalExpenses = expenses.reduce((sum, item) => sum + item.amount, 0);
@@ -190,16 +192,16 @@ class ReportsManager {
         };
     }
 
-    initializeCharts() {
-        this.createFinancialChart();
-        this.createComparisonChart();
+    async initializeCharts() {
+        await this.createFinancialChart();
+        await this.createComparisonChart();
     }
 
-    createFinancialChart() {
+    async createFinancialChart() {
         const ctx = document.getElementById('financialChart').getContext('2d');
         const period = this.getCurrentPeriod();
-        const income = this.dataManager.getIncomeByPeriod(period.start, period.end);
-        const expenses = this.dataManager.getExpensesByPeriod(period.start, period.end);
+        const income = await this.dataManager.getIncomeByPeriod(period.start, period.end);
+        const expenses = await this.dataManager.getExpensesByPeriod(period.start, period.end);
 
         // Group by category
         const incomeByCategory = income.reduce((acc, item) => {
@@ -314,9 +316,9 @@ class ReportsManager {
         });
     }
 
-    generateReport() {
+    async generateReport() {
         // Refresh the current view with updated data
-        this.render();
+        await this.render();
     }
 
     async exportToPDF() {
@@ -335,8 +337,8 @@ class ReportsManager {
         
         // Add financial summary
         const period = this.getCurrentPeriod();
-        const income = this.dataManager.getIncomeByPeriod(period.start, period.end);
-        const expenses = this.dataManager.getExpensesByPeriod(period.start, period.end);
+        const income = await this.dataManager.getIncomeByPeriod(period.start, period.end);
+        const expenses = await this.dataManager.getExpensesByPeriod(period.start, period.end);
         
         const totalIncome = income.reduce((sum, item) => sum + item.amount, 0);
         const totalExpenses = expenses.reduce((sum, item) => sum + item.amount, 0);

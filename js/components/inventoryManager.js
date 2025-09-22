@@ -212,7 +212,7 @@ class InventoryManager {
         document.getElementById('itemModal').style.display = 'none';
     }
 
-    handleItemSubmit(e) {
+    async handleItemSubmit(e) {
         e.preventDefault();
         const idVal = document.getElementById('itemId').value;
         const data = {
@@ -220,17 +220,29 @@ class InventoryManager {
             category: document.getElementById('itemCategory').value,
             quantity: parseFloat(document.getElementById('itemQuantity').value),
             unit: document.getElementById('itemUnit').value,
-            minStock: parseFloat(document.getElementById('itemMinStock').value)
+            minStock: parseFloat(document.getElementById('itemMinStock').value),
+            price: 0 // Default price
         };
 
-        if (idVal) {
-            this.dataManager.updateInventoryItem(parseInt(idVal, 10), data);
-        } else {
-            this.dataManager.addInventoryItem(data);
-        }
+        try {
+            let result;
+            if (idVal) {
+                result = await this.dataManager.updateInventoryItem(parseInt(idVal, 10), data);
+            } else {
+                result = await this.dataManager.addInventoryItem(data);
+            }
 
-        this.closeItemModal();
-        this.render();
+            if (result.success) {
+                this.closeItemModal();
+                this.render();
+                this.showMessage(`Item ${idVal ? 'updated' : 'added'} successfully!`, 'success');
+            } else {
+                this.showMessage(`Error: ${result.error}`, 'error');
+            }
+        } catch (error) {
+            console.error('Error saving item:', error);
+            this.showMessage('An unexpected error occurred', 'error');
+        }
     }
 
     editItem(id) {
@@ -238,10 +250,20 @@ class InventoryManager {
         if (item) this.openItemModal(item);
     }
 
-    deleteItem(id) {
+    async deleteItem(id) {
         if (confirm('Delete this item?')) {
-            this.dataManager.deleteInventoryItem(id);
-            this.render();
+            try {
+                const result = await this.dataManager.deleteInventoryItem(id);
+                if (result.success) {
+                    this.render();
+                    this.showMessage('Item deleted successfully!', 'success');
+                } else {
+                    this.showMessage(`Error: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting item:', error);
+                this.showMessage('An unexpected error occurred', 'error');
+            }
         }
     }
 
@@ -258,7 +280,57 @@ class InventoryManager {
         document.getElementById('stockModal').style.display = 'none';
     }
 
-    handleStockSubmit(e) {
+    showMessage(message, type = 'info') {
+        // Remove existing message if any
+        const existingMessage = document.getElementById('inventoryMessage');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+
+        // Create message element
+        const messageDiv = document.createElement('div');
+        messageDiv.id = 'inventoryMessage';
+        messageDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 10000;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+        `;
+
+        // Set colors based on type
+        if (type === 'success') {
+            messageDiv.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+        } else if (type === 'error') {
+            messageDiv.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+        } else {
+            messageDiv.style.background = 'linear-gradient(135deg, #3b82f6, #2563eb)';
+        }
+
+        messageDiv.textContent = message;
+        document.body.appendChild(messageDiv);
+
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            if (messageDiv.parentNode) {
+                messageDiv.style.opacity = '0';
+                messageDiv.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (messageDiv.parentNode) {
+                        messageDiv.remove();
+                    }
+                }, 300);
+            }
+        }, 3000);
+    }
+
+    async handleStockSubmit(e) {
         e.preventDefault();
         const id = parseInt(document.getElementById('stockItemId').value, 10);
         const qty = parseFloat(document.getElementById('stockQuantity').value);
@@ -266,9 +338,33 @@ class InventoryManager {
         if (!item) return;
 
         const newQty = this.stockDirection === 'in' ? (item.quantity + qty) : (item.quantity - qty);
-        this.dataManager.updateInventoryItem(id, { quantity: Math.max(0, newQty) });
-        this.closeStockModal();
-        this.render();
+        
+        if (newQty < 0) {
+            alert('Cannot reduce stock below zero');
+            return;
+        }
+
+        try {
+            const result = await this.dataManager.updateInventoryItem(id, { 
+                name: item.name,
+                category: item.category,
+                quantity: newQty,
+                unit: item.unit,
+                minStock: item.min_stock,
+                price: item.price
+            });
+            
+            if (result.success) {
+                this.closeStockModal();
+                this.render();
+                this.showMessage(`Stock ${this.stockDirection === 'in' ? 'added' : 'removed'} successfully!`, 'success');
+            } else {
+                this.showMessage(`Error: ${result.error}`, 'error');
+            }
+        } catch (error) {
+            console.error('Error updating inventory:', error);
+            this.showMessage('An unexpected error occurred', 'error');
+        }
     }
 }
 

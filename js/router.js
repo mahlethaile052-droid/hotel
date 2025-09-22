@@ -105,7 +105,7 @@ class Router {
         <div class="login-right" style="flex:1;color:#fff;display:flex;flex-direction:column;justify-content:center;padding:3.25rem;">
           <div class="hotel-info" style="max-width:560px;margin:0 auto;">
             <h2 style="font-size:2.4rem;margin-bottom:1rem;font-weight:900;text-shadow:0 2px 10px rgba(0,0,0,0.25);">Welcome to Bridge Hotel</h2>
-            <p style="font-size:1.05rem;margin-bottom:2rem;opacity:0.95;">Ethiopia's trusted hotel management system. Handle reservations, employees, inventory, and finances seamlessly.</p>
+            <p style="font-size:1.05rem;margin-bottom:2rem;opacity:0.95;">Ethiopia's trusted hotel management system. Manage employees, inventory, and finances seamlessly.</p>
             <div class="features" style="display:flex;flex-direction:column;gap:1rem;">
               <div class="feature" style="display:flex;align-items:center;gap:12px;">
                 <div class="feature-icon" style="width:48px;height:48px;border-radius:12px;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-size:1.35rem;box-shadow:inset 0 0 10px rgba(255,255,255,0.08);">👥</div>
@@ -182,12 +182,12 @@ class Router {
     }
   }
 
-  showProtectedDashboard() {
+  async showProtectedDashboard() {
     if (!this.authManager.requireAuth()) {
       this.navigate('/login');
       return;
     }
-    this.showDashboard();
+    await this.showDashboard();
   }
 
   showProtectedEmployees() {
@@ -198,20 +198,20 @@ class Router {
     this.showEmployeesPage();
   }
 
-  showProtectedIncome() {
+  async showProtectedIncome() {
     if (!this.authManager.requireAuth()) {
       this.navigate('/login');
       return;
     }
-    this.showIncomePage();
+    await this.showIncomePage();
   }
 
-  showProtectedExpenses() {
+  async showProtectedExpenses() {
     if (!this.authManager.requireAuth()) {
       this.navigate('/login');
       return;
     }
-    this.showExpensesPage();
+    await this.showExpensesPage();
   }
 
   showProtectedInventory() {
@@ -222,20 +222,20 @@ class Router {
     this.showInventoryPage();
   }
 
-  showProtectedReports() {
+  async showProtectedReports() {
     if (!this.authManager.requireAuth()) {
       this.navigate('/login');
       return;
     }
-    this.showReportsPage();
+    await this.showReportsPage();
   }
 
-  showProtectedTax() {
+  async showProtectedTax() {
     if (!this.authManager.requireAuth()) {
       this.navigate('/login');
       return;
     }
-    this.showTaxPage();
+    await this.showTaxPage();
   }
 
   showProtectedPayments() {
@@ -247,8 +247,13 @@ class Router {
   }
 
   // --- Dashboard ---
-  showDashboard() {
+  async showDashboard() {
     const bgStyle = this.getDashboardBackgroundStyle();
+    
+    // Get monthly data asynchronously
+    const monthlyIncome = await this.dataManager.getThisMonthIncome();
+    const monthlyExpenses = await this.dataManager.getThisMonthExpenses();
+    
     document.querySelector('#app').innerHTML = `
       <div class="dashboard" style="min-height:100vh;${bgStyle}">
         <header class="dashboard-header" style="background:rgba(255,255,255,0.9);backdrop-filter:saturate(140%) blur(6px);">
@@ -276,11 +281,11 @@ class Router {
           <section class="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:1.5rem;">
             <div style="background:rgba(255,255,255,0.9);backdrop-filter:saturate(140%) blur(6px);border-radius:16px;padding:1.25rem;border:1px solid rgba(255,255,255,0.6);box-shadow:0 10px 25px rgba(0,0,0,0.15);">
               <div style="font-size:0.9rem;color:#6b7280;margin-bottom:0.25rem;">This Month Income</div>
-              <div style="font-size:1.8rem;font-weight:800;color:#059669;">${this.dataManager.getThisMonthIncome().toLocaleString()} ETB</div>
+              <div style="font-size:1.8rem;font-weight:800;color:#059669;">${monthlyIncome.toLocaleString()} ETB</div>
             </div>
             <div style="background:rgba(255,255,255,0.9);backdrop-filter:saturate(140%) blur(6px);border-radius:16px;padding:1.25rem;border:1px solid rgba(255,255,255,0.6);box-shadow:0 10px 25px rgba(0,0,0,0.15);">
               <div style="font-size:0.9rem;color:#6b7280;margin-bottom:0.25rem;">This Month Expenses</div>
-              <div style="font-size:1.8rem;font-weight:800;color:#dc2626;">${this.dataManager.getThisMonthExpenses().toLocaleString()} ETB</div>
+              <div style="font-size:1.8rem;font-weight:800;color:#dc2626;">${monthlyExpenses.toLocaleString()} ETB</div>
             </div>
             <div style="background:rgba(255,255,255,0.9);backdrop-filter:saturate(140%) blur(6px);border-radius:16px;padding:1.25rem;border:1px solid rgba(255,255,255,0.6);box-shadow:0 10px 25px rgba(0,0,0,0.15);">
               <div style="font-size:0.9rem;color:#6b7280;margin-bottom:0.25rem;">Employees</div>
@@ -323,11 +328,6 @@ class Router {
               <p style="margin:0;color:#6b7280;">Calculate & manage taxes</p>
               <button onclick="router.navigate('/tax')" class="btn btn-primary" style="margin-top:0.5rem;">Open</button>
         </div>
-            <div style="background:rgba(255,255,255,0.9);border:1px solid rgba(255,255,255,0.6);backdrop-filter:saturate(140%) blur(6px);padding:1.25rem;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,0.15);display:flex;flex-direction:column;gap:0.5rem;">
-              <h3 style="margin:0;color:#111827;font-size:1.05rem;">💳 Payments</h3>
-              <p style="margin:0;color:#6b7280;">Accept and track payments</p>
-              <button onclick="router.navigate('/payments')" class="btn btn-primary" style="margin-top:0.5rem;">Open</button>
-            </div>
           </section>
         </main>
       </div>
@@ -383,15 +383,15 @@ class Router {
     this.attachLogoutHandler();
   }
 
-  showIncomePage() {
+  async showIncomePage() {
     const incomeManager = new IncomeManager(this.dataManager);
-    incomeManager.render();
+    await incomeManager.render();
     this.attachLogoutHandler();
   }
 
-  showExpensesPage() {
+  async showExpensesPage() {
     const expenseManager = new ExpenseManager(this.dataManager);
-    expenseManager.render();
+    await expenseManager.render();
     this.attachLogoutHandler();
   }
 
@@ -401,15 +401,15 @@ class Router {
     this.attachLogoutHandler();
   }
 
-  showReportsPage() {
+  async showReportsPage() {
     const reportsManager = new ReportsManager(this.dataManager);
-    reportsManager.render();
+    await reportsManager.render();
     this.attachLogoutHandler();
   }
 
-  showTaxPage() {
+  async showTaxPage() {
     const taxManager = new TaxManager(this.dataManager);
-    taxManager.render();
+    await taxManager.render();
     this.attachLogoutHandler();
   }
 

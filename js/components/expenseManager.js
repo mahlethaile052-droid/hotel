@@ -3,9 +3,11 @@ class ExpenseManager {
     this.dataManager = dataManager;
   }
 
-  render() {
+  async render() {
     const period = this.currentPeriod || 'day';
-    const { filtered, todayTotal, weekTotal } = this.getPeriodData(period);
+    const todayTotal = await this.getTodayTotal();
+    const weekTotal = await this.getWeekTotal();
+    const { filtered } = this.getPeriodData(period);
     
     document.querySelector('#app').innerHTML = `
       <div class="dashboard">
@@ -334,15 +336,24 @@ class ExpenseManager {
 
       // 2) Add an expense row reflecting the withdrawal
       const expenseRes = await this.dataManager.addExpense({
-        category: 'purchases',
+        category: 'withdrawal',
         description: description || `Bank withdrawal from Neged (${account})`,
         amount,
         date
       });
       if (!expenseRes.success) throw new Error(expenseRes.error);
 
+      // 3) Add a negative income entry to decrease total income
+      const incomeRes = await this.dataManager.addIncome({
+        category: 'withdrawal',
+        description: `Bank withdrawal from Neged (${account})`,
+        amount: -amount,
+        date
+      });
+      if (!incomeRes.success) throw new Error(incomeRes.error);
+
       this.hideBankModal();
-      this.showMessage('Bank withdrawal recorded and added to expenses', 'success');
+      this.showMessage('Bank withdrawal recorded - income decreased and expense added', 'success');
       this.render();
     } catch (err) {
       console.error('Bank withdrawal failed', err);
@@ -382,22 +393,20 @@ class ExpenseManager {
     }
   }
 
-  getTodayTotal() {
+  async getTodayTotal() {
     const today = new Date().toISOString().split('T')[0];
-    return this.dataManager.getExpenses()
-      .filter(item => item.date === today)
-      .reduce((total, item) => total + item.amount, 0);
+    const expenses = await this.dataManager.getExpensesByPeriod(today, today);
+    return expenses.reduce((total, item) => total + item.amount, 0);
   }
 
-  getWeekTotal() {
+  async getWeekTotal() {
     const today = new Date();
     const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    return this.dataManager.getExpenses()
-      .filter(item => {
-        const itemDate = new Date(item.date);
-        return itemDate >= weekAgo && itemDate <= today;
-      })
-      .reduce((total, item) => total + item.amount, 0);
+    const expenses = await this.dataManager.getExpensesByPeriod(
+      weekAgo.toISOString().split('T')[0], 
+      today.toISOString().split('T')[0]
+    );
+    return expenses.reduce((total, item) => total + item.amount, 0);
   }
 
   getPeriodData(period) {
